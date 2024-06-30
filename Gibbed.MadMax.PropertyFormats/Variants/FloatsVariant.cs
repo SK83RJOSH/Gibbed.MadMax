@@ -49,12 +49,15 @@ namespace Gibbed.MadMax.PropertyFormats.Variants
 
         public void Parse(string text)
         {
-            var parts = text.Split(',');
             this._Values.Clear();
-            foreach (var part in parts)
+            if (string.IsNullOrEmpty(text) == false)
             {
-                var value = float.Parse(part, CultureInfo.InvariantCulture);
-                this._Values.Add(value);
+                var parts = text.Split(',');
+                foreach (var part in parts)
+                {
+                    var value = float.Parse(part, CultureInfo.InvariantCulture);
+                    this._Values.Add(value);
+                }
             }
         }
 
@@ -101,6 +104,11 @@ namespace Gibbed.MadMax.PropertyFormats.Variants
         bool PropertyContainerFile.IRawVariant.IsSimple
         {
             get { return true; }
+        }
+
+        uint PropertyContainerFile.IRawVariant.Alignment
+        {
+            get { return 4; }
         }
 
         void PropertyContainerFile.IRawVariant.Serialize(Stream output, Endian endian)

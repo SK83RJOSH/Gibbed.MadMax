@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net5.0</TargetFramework>
+    <BaseOutputPath>..\bin\</BaseOutputPath>
+    <PackageOutputPath />
+    <StartupObject>Gibbed.MadMax.SmallUnpack.Program</StartupObject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Gibbed.IO\Gibbed.IO.csproj" />
+    <ProjectReference Include="..\Gibbed.MadMax.FileFormats\Gibbed.MadMax.FileFormats.csproj" />
+    <ProjectReference Include="..\Gibbed.ProjectData\Gibbed.ProjectData.csproj" />
+    <ProjectReference Include="..\NDesk.Options\NDesk.Options.csproj" />
+  </ItemGroup>
+
+</Project>

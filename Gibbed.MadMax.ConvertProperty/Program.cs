@@ -26,6 +26,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Xml;
+using System.Xml.Linq;
 using System.Xml.XPath;
 using Gibbed.IO;
 using Gibbed.MadMax.FileFormats;
@@ -88,7 +89,6 @@ namespace Gibbed.MadMax.ConvertProperty
             };
 
             List<string> extras;
-
             try
             {
                 extras = options.Parse(args);
@@ -100,6 +100,8 @@ namespace Gibbed.MadMax.ConvertProperty
                 Console.WriteLine("Try `{0} --help' for more information.", GetExecutableName());
                 return;
             }
+
+            //extras.Add("C:\\Program Files (x86)\\Steam\\steamapps\\common\\Mad Max\\archives_win64\\unpacked\\locations\\a01\\key_locations\\enc1010\\a01_enc1010_unpack\\locations\\a01\\key_locations\\enc1010\\a01_enc1010.xml");
 
             if (mode == Mode.Unknown && extras.Count >= 1)
             {
@@ -291,10 +293,11 @@ namespace Gibbed.MadMax.ConvertProperty
                         }
                     }
 
-                    var nodes = root.Select("object");
-                    while (nodes.MoveNext() == true)
+                    var node = root.SelectSingleNode("object");
+                    if (node != null)
                     {
-                        propertyFile.Nodes.Add(ParseObject(nodes.Current));
+                        node = node.SelectSingleNode("object");
+                        propertyFile.Root = ParseObject(node);
                     }
                 }
 
@@ -459,7 +462,8 @@ namespace Gibbed.MadMax.ConvertProperty
         private static Node ParseObject(XPathNavigator nav)
         {
             var node = new Node();
-
+            string name;
+            node.NameHash = GetIdOrName(nav, out name);
             if (nav.MoveToAttribute("tag", "") == true)
             {
                 node.Tag = nav.Value;
@@ -475,8 +479,8 @@ namespace Gibbed.MadMax.ConvertProperty
                     throw new InvalidOperationException();
                 }
 
-                string name;
                 var id = GetIdOrName(current, out name);
+                //node.NameHash = id;
                 var type = current.GetAttribute("type", "");
 
                 var variant = VariantFactory.GetVariant(type);
@@ -515,11 +519,9 @@ namespace Gibbed.MadMax.ConvertProperty
                     throw new InvalidOperationException();
                 }
 
-                string name;
-                uint id = GetIdOrName(child, out name);
                 var obj = ParseObject(child);
 
-                if (node.Children.ContainsKey(id) == true)
+                if (node.Children.ContainsKey(obj.NameHash) == true)
                 {
                     var lineInfo = (IXmlLineInfo)child;
 
@@ -527,20 +529,20 @@ namespace Gibbed.MadMax.ConvertProperty
                     {
                         throw new FormatException(string.Format(
                             "duplicate object id 0x{0:X8} at line {1} position {2}",
-                            id,
+                            obj.NameHash,
                             lineInfo.LineNumber,
                             lineInfo.LinePosition));
                     }
 
                     throw new FormatException(
                         string.Format("duplicate object id 0x{0:X8} ('{1}') at line {2} position {3}",
-                                      id,
+                                      obj.NameHash,
                                       name,
                                       lineInfo.LineNumber,
                                       lineInfo.LinePosition));
                 }
 
-                node.Children.Add(id, obj);
+                node.Children.Add(obj.NameHash, obj);
             }
 
             return node;

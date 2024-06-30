@@ -94,7 +94,7 @@ namespace Gibbed.MadMax.XvmDisassemble
                 if (debugStringsInfo.TypeHash == 0xFEF3B589)
                 {
                     input.Position = debugStringsInfo.Offset;
-                    using (var data = input.ReadToMemoryStream(debugStringsInfo.Size))
+                    using (var data = input.ReadToMemoryStream((int)debugStringsInfo.Size))
                     {
                         var offset = data.ReadValueS64(endian);
                         var count = data.ReadValueS64(endian);
@@ -115,7 +115,7 @@ namespace Gibbed.MadMax.XvmDisassemble
                 }
 
                 input.Position = moduleInfo.Offset;
-                using (var data = input.ReadToMemoryStream(moduleInfo.Size))
+                using (var data = input.ReadToMemoryStream((int)moduleInfo.Size))
                 {
                     module.Deserialize(data, endian);
                 }

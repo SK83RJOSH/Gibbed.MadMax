@@ -30,6 +30,7 @@ namespace Gibbed.MadMax.PropertyFormats
         private readonly Dictionary<uint, IVariant> _Properties;
         private readonly Dictionary<uint, string> _KnownNames;
         private string _Tag;
+        private uint _NameHash;
 
         public Node()
         {
@@ -57,6 +58,17 @@ namespace Gibbed.MadMax.PropertyFormats
         {
             get { return this._Tag; }
             set { this._Tag = value; }
+        }
+
+        public uint NameHash
+        {
+            get { return this._NameHash; }
+            set { this._NameHash = value; }
+        }
+
+        public override string ToString()
+        {
+            return this._NameHash.ToString("X8");
         }
     }
 }

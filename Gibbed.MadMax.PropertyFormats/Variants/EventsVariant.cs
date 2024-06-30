@@ -50,18 +50,33 @@ namespace Gibbed.MadMax.PropertyFormats.Variants
 
         public void Parse(string text)
         {
-            var parts = text.Split(',');
-            if ((parts.Length % 2) != 0)
-            {
-                throw new FormatException("vec_events requires pairs of uints delimited by a comma");
-            }
+            //var parts = text.Split(',');
+            //if ((parts.Length % 2) != 0)
+            //{
+            //    throw new FormatException("vec_events requires pairs of uints delimited by a comma");
+            //}
 
+            //this._Values.Clear();
+            //for (int i = 0; i < parts.Length; i += 2)
+            //{
+            //    var left = uint.Parse(parts[i + 0], CultureInfo.InvariantCulture);
+            //    var right = uint.Parse(parts[i + 1], CultureInfo.InvariantCulture);
+            //    this._Values.Add(new KeyValuePair<uint, uint>(left, right));
+            //}
             this._Values.Clear();
-            for (int i = 0; i < parts.Length; i += 2)
+            if (string.IsNullOrEmpty(text) == false)
             {
-                var left = uint.Parse(parts[i + 0], CultureInfo.InvariantCulture);
-                var right = uint.Parse(parts[i + 1], CultureInfo.InvariantCulture);
-                this._Values.Add(new KeyValuePair<uint, uint>(left, right));
+                var parts = text.Split(',');
+                if ((parts.Length % 2) != 0)
+                {
+                    throw new FormatException("vec_events requires pairs of uints delimited by a comma");
+                }
+                for (int i = 0; i < parts.Length; i += 2)
+                {
+                    var left = uint.Parse(parts[i + 0], CultureInfo.InvariantCulture);
+                    var right = uint.Parse(parts[i + 1], CultureInfo.InvariantCulture);
+                    this._Values.Add(new KeyValuePair<uint, uint>(left, right));
+                }
             }
         }
 
@@ -121,9 +136,20 @@ namespace Gibbed.MadMax.PropertyFormats.Variants
             get { return true; }
         }
 
+        uint PropertyContainerFile.IRawVariant.Alignment
+        {
+            get { return 4; }
+        }
+
         void PropertyContainerFile.IRawVariant.Serialize(Stream output, Endian endian)
         {
-            throw new NotImplementedException();
+            var values = this._Values;
+            output.WriteValueS32(values.Count, endian);
+            foreach (var value in values)
+            {
+                output.WriteValueU32(value.Key, endian);
+                output.WriteValueU32(value.Value, endian);
+            }
         }
 
         void PropertyContainerFile.IRawVariant.Deserialize(Stream input, Endian endian)

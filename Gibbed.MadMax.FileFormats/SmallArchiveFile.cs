@@ -49,6 +49,17 @@ namespace Gibbed.MadMax.FileFormats
             get { return this._Entries; }
         }
 
+        public static long EstimateHeaderSize(List<PendingEntry> paths)
+        {
+            long size = 4 + 4 + 4 + 4;
+            foreach (var path in paths)
+            {
+                Console.WriteLine(path.Name);
+                size += 4 + Encoding.ASCII.GetByteCount(path.Name).Align(4) + 4 + 4;
+            }
+            return size.Align(16);
+        }
+
         public void Serialize(Stream output)
         {
             var endian = this._Endian;
@@ -96,7 +107,7 @@ namespace Gibbed.MadMax.FileFormats
             var indexSize = input.ReadValueU32(endian);
 
             var entries = new List<Entry>();
-            using (var index = input.ReadToMemoryStream(indexSize))
+            using (var index = input.ReadToMemoryStream((int)indexSize))
             {
                 while (index.Length - index.Position > 15)
                 {
@@ -130,7 +141,7 @@ namespace Gibbed.MadMax.FileFormats
                     throw new FormatException("entry file name is too long");
                 }
 
-                var name = input.ReadString(length, true, Encoding.ASCII);
+                var name = input.ReadString((int)length, true, Encoding.ASCII);
                 var offset = input.ReadValueU32(endian);
                 var size = input.ReadValueU32(endian);
                 return new Entry(name, offset, size);
@@ -148,6 +159,13 @@ namespace Gibbed.MadMax.FileFormats
             {
                 Write(output, this, endian);
             }
+        }
+
+        public struct PendingEntry
+        {
+            public string Name;
+            public uint? Size;
+            public string Path;
         }
     }
 }

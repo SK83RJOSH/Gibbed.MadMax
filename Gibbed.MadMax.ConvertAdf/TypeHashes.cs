@@ -27,9 +27,17 @@ namespace Gibbed.MadMax.ConvertAdf
         public static class Primitive
         {
             public const uint UInt8 = 0x0CA2821D; // uint8011
+            public const uint Int8 = 0x580D0A62; // int8011
             public const uint UInt16 = 0x86D152BD; // uint16022
+            public const uint Int16 = 0xD13FCF93; // int16022
             public const uint UInt32 = 0x075E4E4F; // uint32044
+            public const uint Int32 = 0x192FE633; // int32044
             public const uint UInt64 = 0xA139E01F; // uint64088
+            public const uint Int64 = 0xAF41354F; // int64088
+            public const uint Float = 0x7515A207; // float044
+            public const uint Double = 0xC609F663; // double088
+            public const uint String = 0x8955583E; // String588
+
         }
     }
 }

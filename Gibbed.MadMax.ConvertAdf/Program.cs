@@ -76,6 +76,13 @@ namespace Gibbed.MadMax.ConvertAdf
 
             List<string> extras;
 
+            //args = new string[1];
+            //args[0] = "C:\\get_player_scrap.gsrc";//"C:\\mapicons.mapiconsc";
+            //typeLibraryPaths.Add("C:\\gsrc.adf");
+            //args[0] = "C:\\mapicons.mapiconsc";
+            //args[0] = "C:\\map.guixc";
+            //typeLibraryPaths.Add("C:\\guixc.adf");
+            //args[0] = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Mad Max\\archives_win64\\unpacked\\global\\location_info_unpack\\global\\location_info.locationinfoc";
             try
             {
                 extras = options.Parse(args);
@@ -126,7 +133,7 @@ namespace Gibbed.MadMax.ConvertAdf
 
                 if (adf.InstanceInfos.Count > 0)
                 {
-                    throw new InvalidOperationException();
+                    //throw new InvalidOperationException();
                 }
 
                 runtime.AddTypeDefinitions(adf);
@@ -143,10 +150,10 @@ namespace Gibbed.MadMax.ConvertAdf
                     adf.Deserialize(input);
                     var endian = adf.Endian;
 
-                    if (adf.TypeDefinitions.Count > 0)
-                    {
-                        throw new NotSupportedException();
-                    }
+                    //if (adf.TypeDefinitions.Count > 0)
+                    //{
+                    //    throw new NotSupportedException();
+                    //}
 
                     runtime.AddTypeDefinitions(adf);
 
@@ -170,11 +177,15 @@ namespace Gibbed.MadMax.ConvertAdf
                             foreach (var instanceInfo in adf.InstanceInfos)
                             {
                                 writer.WriteStartElement("instance");
+                                Console.WriteLine(instanceInfo.Name);
+
+                               // writer.WriteStartElement("root");
                                 writer.WriteAttributeString("root", instanceInfo.Name);
 
                                 var typeDefinition = runtime.GetTypeDefinition(instanceInfo.TypeHash);
                                 input.Position = instanceInfo.Offset;
-                                using (var data = input.ReadToMemoryStream(instanceInfo.Size))
+                                Console.WriteLine("TypeDef FilePos Data {0:X}", input.Position);
+                                using (var data = input.ReadToMemoryStream((int)instanceInfo.Size))
                                 {
                                     WriteInstance(typeDefinition, instanceInfo.Name, data, writer, endian, runtime);
                                 }
@@ -231,7 +242,7 @@ namespace Gibbed.MadMax.ConvertAdf
             while (queue.Count > 0)
             {
                 var workItem = queue.Dequeue();
-
+                Console.WriteLine(workItem.Name);
                 switch (workItem.TypeDefinition.Type)
                 {
                     case TypeDefinitionType.Structure:
@@ -266,8 +277,19 @@ namespace Gibbed.MadMax.ConvertAdf
                     }
 
                     default:
-                    {
-                        throw new NotImplementedException();
+                    {   
+                            data.Position = workItem.Offset;
+                        WriteArray(
+                            writer,
+                            workItem.TypeDefinition,
+                            workItem.Id,
+                            data,
+                            endian,
+                            runtime,
+                            ref counter,
+                            queue);
+                            break;
+                        //throw new NotImplementedException();
                     }
                 }
             }
@@ -320,6 +342,20 @@ namespace Gibbed.MadMax.ConvertAdf
 
             switch (memberDefinition.TypeHash)
             {
+                case TypeHashes.Primitive.UInt8:
+                    {
+                        var value = data.ReadValueU8();
+                        writer.WriteValue(value.ToString(CultureInfo.InvariantCulture));
+                        break;
+                    }
+
+                case TypeHashes.Primitive.Int8:
+                    {
+                        var value = data.ReadValueS8();
+                        writer.WriteValue(value.ToString(CultureInfo.InvariantCulture));
+                        break;
+                    }
+
                 case TypeHashes.Primitive.UInt16:
                 {
                     var value = data.ReadValueU16(endian);
@@ -341,6 +377,51 @@ namespace Gibbed.MadMax.ConvertAdf
                     break;
                 }
 
+                case TypeHashes.Primitive.Int16:
+                    {
+                        var value = data.ReadValueS16(endian);
+                        writer.WriteValue(value.ToString(CultureInfo.InvariantCulture));
+                        break;
+                    }
+
+                case TypeHashes.Primitive.Int32:
+                    {
+                        var value = data.ReadValueS32(endian);
+                        writer.WriteValue(value.ToString(CultureInfo.InvariantCulture));
+                        break;
+                    }
+
+                case TypeHashes.Primitive.Int64:
+                    {
+                        var value = data.ReadValueS64(endian);
+                        writer.WriteValue(value.ToString(CultureInfo.InvariantCulture));
+                        break;
+                    }
+
+                case TypeHashes.Primitive.Float:
+                    {
+                        var value = data.ReadValueF32(endian);
+                        writer.WriteValue(value.ToString(CultureInfo.InvariantCulture));
+                        break;
+                    }
+
+                case TypeHashes.Primitive.Double:
+                    {
+                        var value = data.ReadValueF64(endian);
+                        writer.WriteValue(value.ToString(CultureInfo.InvariantCulture));
+                        break;
+                    }
+
+                case TypeHashes.Primitive.String:
+                    {
+                        var offset = data.ReadValueS64(endian);
+                        data.Position = offset;
+                        var value = data.ReadStringZ(Encoding.UTF8);
+                        Console.WriteLine(value);
+                        writer.WriteValue(value);
+                        break;
+                    }
+
                 default:
                 {
                     var typeDefinition = runtime.GetTypeDefinition(memberDefinition.TypeHash);
@@ -360,10 +441,38 @@ namespace Gibbed.MadMax.ConvertAdf
                             break;
                         }
 
-                        default:
-                        {
-                            throw new NotSupportedException();
-                        }
+                            case TypeDefinitionType.InlineArray:
+                                {
+                                    WriteArrayItems(writer,
+                                                         typeDefinition,
+                                                         -1,
+                                                         data, endian, runtime, ref counter, queue, data.Position, typeDefinition.ElementLength);
+                                    break;
+                                }
+
+                            case TypeDefinitionType.Pointer:
+                                {
+                                    writer.WriteValue("POINTER");
+                                    break;
+                                }
+
+                            case TypeDefinitionType.BitField:
+                                {
+                                    writer.WriteValue("BitField:UNK");
+                                    break;
+                                }
+
+                            case TypeDefinitionType.Enumeration:
+                                {
+                                    var enumID = data.ReadValueU32(endian);
+                                    writer.WriteValue(typeDefinition.Members[typeDefinition.membersEnum[enumID]].Name+":"+enumID);
+                                    break;
+                                }
+
+                            default:
+                            {
+                                throw new NotSupportedException();
+                            }
                     }
 
                     break;
@@ -382,6 +491,24 @@ namespace Gibbed.MadMax.ConvertAdf
                                        ref long counter,
                                        Queue<WorkItem> queue)
         {
+            var offset = data.ReadValueS64(endian);
+            var count = data.ReadValueS64(endian);
+            WriteArrayItems(writer,
+                                 typeDefinition,
+                                 id,
+                                 data, endian, runtime, ref counter, queue,
+                                 offset, count);
+        }
+
+        private static void WriteArrayItems(XmlWriter writer,
+                                       TypeDefinition typeDefinition,
+                                       long id,
+                                       MemoryStream data,
+                                       Endian endian,
+                                       RuntimeTypeLibrary runtime,
+                                       ref long counter,
+                                       Queue<WorkItem> queue, long offset, long count)
+        {
             writer.WriteStartElement("array");
 
             if (id >= 0)
@@ -389,8 +516,7 @@ namespace Gibbed.MadMax.ConvertAdf
                 writer.WriteAttributeString("id", "#" + id);
             }
 
-            var offset = data.ReadValueS64(endian);
-            var count = data.ReadValueS64(endian);
+            //Console.WriteLine("Write Array {0:X}", data.Position);
 
             switch (typeDefinition.ElementTypeHash)
             {
@@ -408,6 +534,20 @@ namespace Gibbed.MadMax.ConvertAdf
                     break;
                 }
 
+                case TypeHashes.Primitive.Int8:
+                    {
+                        data.Position = offset;
+                        var sb = new StringBuilder();
+                        for (long i = 0; i < count; i++)
+                        {
+                            var value = data.ReadValueS8();
+                            sb.Append(value.ToString(CultureInfo.InvariantCulture));
+                            sb.Append(" ");
+                        }
+                        writer.WriteValue(sb.ToString());
+                        break;
+                    }
+
                 case TypeHashes.Primitive.UInt16:
                 {
                     data.Position = offset;
@@ -422,6 +562,21 @@ namespace Gibbed.MadMax.ConvertAdf
                     break;
                 }
 
+                case TypeHashes.Primitive.Int16:
+                    {
+                        data.Position = offset;
+                        var sb = new StringBuilder();
+                        for (long i = 0; i < count; i++)
+                        {
+                            var value = data.ReadValueS16(endian);
+                            sb.Append(value.ToString(CultureInfo.InvariantCulture));
+                            sb.Append(" ");
+                        }
+                        writer.WriteValue(sb.ToString());
+                        break;
+                    }
+
+
                 case TypeHashes.Primitive.UInt32:
                 {
                     data.Position = offset;
@@ -435,6 +590,76 @@ namespace Gibbed.MadMax.ConvertAdf
                     writer.WriteValue(sb.ToString());
                     break;
                 }
+
+                case TypeHashes.Primitive.Int32:
+                    {
+                        data.Position = offset;
+                        var sb = new StringBuilder();
+                        for (long i = 0; i < count; i++)
+                        {
+                            var value = data.ReadValueS32(endian);
+                            sb.Append(value.ToString(CultureInfo.InvariantCulture));
+                            sb.Append(" ");
+                        }
+                        writer.WriteValue(sb.ToString());
+                        break;
+                    }
+
+                case TypeHashes.Primitive.UInt64:
+                    {
+                        data.Position = offset;
+                        var sb = new StringBuilder();
+                        for (long i = 0; i < count; i++)
+                        {
+                            var value = data.ReadValueU64(endian);
+                            sb.Append(value.ToString(CultureInfo.InvariantCulture));
+                            sb.Append(" ");
+                        }
+                        writer.WriteValue(sb.ToString());
+                        break;
+                    }
+
+                case TypeHashes.Primitive.Int64:
+                    {
+                        data.Position = offset;
+                        var sb = new StringBuilder();
+                        for (long i = 0; i < count; i++)
+                        {
+                            var value = data.ReadValueS64(endian);
+                            sb.Append(value.ToString(CultureInfo.InvariantCulture));
+                            sb.Append(" ");
+                        }
+                        writer.WriteValue(sb.ToString());
+                        break;
+                    }
+
+                case TypeHashes.Primitive.Float:
+                    {
+                        data.Position = offset;
+                        var sb = new StringBuilder();
+                        for (long i = 0; i < count; i++)
+                        {
+                            var value = data.ReadValueF32(endian);
+                            sb.Append(value.ToString(CultureInfo.InvariantCulture));
+                            sb.Append(" ");
+                        }
+                        writer.WriteValue(sb.ToString());
+                        break;
+                    }
+
+                case TypeHashes.Primitive.Double:
+                    {
+                        data.Position = offset;
+                        var sb = new StringBuilder();
+                        for (long i = 0; i < count; i++)
+                        {
+                            var value = data.ReadValueF64(endian);
+                            sb.Append(value.ToString(CultureInfo.InvariantCulture));
+                            sb.Append(" ");
+                        }
+                        writer.WriteValue(sb.ToString());
+                        break;
+                    }
 
                 default:
                 {

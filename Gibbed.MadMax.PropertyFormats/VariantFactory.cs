@@ -81,6 +81,11 @@ namespace Gibbed.MadMax.PropertyFormats
                 {
                     return new Variants.EventsVariant();
                 }
+
+                case "objectid":
+                    {
+                        return new Variants.ObjectIdVariant();
+                    }
             }
 
             throw new ArgumentException("unknown variant type", "type");

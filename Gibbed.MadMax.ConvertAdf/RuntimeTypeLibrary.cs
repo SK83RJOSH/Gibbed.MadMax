@@ -27,33 +27,35 @@ namespace Gibbed.MadMax.ConvertAdf
 {
     internal class RuntimeTypeLibrary
     {
-        private readonly Dictionary<uint, FileFormats.AdfFile.TypeDefinition> _TypeDefinitions;
+        public readonly Dictionary<uint, FileFormats.AdfFile.TypeDefinition> TypeDefinitions;
 
         public RuntimeTypeLibrary()
         {
-            this._TypeDefinitions = new Dictionary<uint, FileFormats.AdfFile.TypeDefinition>();
+            this.TypeDefinitions = new Dictionary<uint, FileFormats.AdfFile.TypeDefinition>();
         }
 
         public FileFormats.AdfFile.TypeDefinition GetTypeDefinition(uint nameHash)
         {
-            if (this._TypeDefinitions.ContainsKey(nameHash) == false)
+            //Console.WriteLine(nameHash);
+            if (this.TypeDefinitions.ContainsKey(nameHash) == false)
             {
-                throw new InvalidOperationException();
+                Console.WriteLine("GetTypeDefinition Unk {0:X}", nameHash);
+                return new FileFormats.AdfFile.TypeDefinition();
             }
-
-            return this._TypeDefinitions[nameHash];
+            //Console.WriteLine("GetTypeDefinition " + this.TypeDefinitions[nameHash].Name + " " + nameHash);
+            return this.TypeDefinitions[nameHash];
         }
 
         public void AddTypeDefinitions(FileFormats.AdfFile adf)
         {
             foreach (var typeDefinition in adf.TypeDefinitions)
             {
-                if (this._TypeDefinitions.ContainsKey(typeDefinition.NameHash) == true)
+                if (this.TypeDefinitions.ContainsKey(typeDefinition.NameHash) == true)
                 {
                     throw new InvalidOperationException();
                 }
 
-                this._TypeDefinitions.Add(typeDefinition.NameHash, typeDefinition);
+                this.TypeDefinitions.Add(typeDefinition.NameHash, typeDefinition);
             }
         }
     }

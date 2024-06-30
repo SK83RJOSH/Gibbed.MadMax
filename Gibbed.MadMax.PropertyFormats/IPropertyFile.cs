@@ -28,6 +28,7 @@ namespace Gibbed.MadMax.PropertyFormats
     public interface IPropertyFile
     {
         List<Node> Nodes { get; }
+        Node Root { get; set; }
 
         void Serialize(Stream output);
         void Deserialize(Stream input);

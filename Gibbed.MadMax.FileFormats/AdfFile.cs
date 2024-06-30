@@ -182,6 +182,9 @@ namespace Gibbed.MadMax.FileFormats
 
         public struct TypeDefinition
         {
+            public bool IsEnumeration;
+            public uint EnumerationCount;
+
             public TypeDefinitionType Type;
             public uint Size;
             public uint Alignment;
@@ -191,19 +194,26 @@ namespace Gibbed.MadMax.FileFormats
             public uint ElementTypeHash;
             public uint ElementLength;
             public MemberDefinition[] Members;
+            public Dictionary<uint, uint> membersEnum;
+            
 
             internal static TypeDefinition Read(Stream input, Endian endian, StringTable stringTable)
             {
+                
+
                 var instance = new TypeDefinition();
-                instance.Type = (TypeDefinitionType)input.ReadValueU32(endian);
-                instance.Size = input.ReadValueU32(endian);
-                instance.Alignment = input.ReadValueU32(endian);
-                instance.NameHash = input.ReadValueU32(endian);
-                var nameIndex = input.ReadValueS64(endian);
-                instance.Name = stringTable.Get(nameIndex);
-                instance.Flags = input.ReadValueU32(endian);
-                instance.ElementTypeHash = input.ReadValueU32(endian);
-                instance.ElementLength = input.ReadValueU32(endian);
+                {
+                    instance.Type = (TypeDefinitionType)input.ReadValueU32(endian);
+                    instance.Size = input.ReadValueU32(endian);
+                    instance.Alignment = input.ReadValueU32(endian);
+                    instance.NameHash = input.ReadValueU32(endian);
+                    var nameIndex = input.ReadValueS64(endian);
+                    instance.Name = stringTable.Get(nameIndex);
+                    instance.Flags = input.ReadValueU32(endian);
+                    instance.ElementTypeHash = input.ReadValueU32(endian);
+                    instance.ElementLength = input.ReadValueU32(endian);
+                }
+                
 
                 switch (instance.Type)
                 {
@@ -228,6 +238,44 @@ namespace Gibbed.MadMax.FileFormats
                         break;
                     }
 
+                    case TypeDefinitionType.InlineArray:
+                    {
+                            var memberCount = input.ReadValueU32(endian);
+                            Console.WriteLine("InlineArray " + memberCount);
+                            if (memberCount != 0)
+                            {
+                                throw new FormatException();
+                            }
+
+                            break;
+                    }
+
+                    case TypeDefinitionType.Pointer:
+                    case TypeDefinitionType.BitField:
+                    {
+                            var unknown = input.ReadValueU32(endian);
+                            if (unknown != 0)
+                            {
+                                throw new FormatException();
+                            }
+                            break;
+                        }
+
+                    case TypeDefinitionType.Enumeration:
+                        {
+                            instance.EnumerationCount = input.ReadValueU32(endian);
+                            instance.IsEnumeration = true;
+                            instance.Members = new MemberDefinition[instance.EnumerationCount];
+                            instance.membersEnum = new Dictionary<uint, uint>();
+                            for (uint i = 0; i < instance.EnumerationCount; i++)
+                            {
+                                instance.Members[i] = MemberDefinition.ReadEnum(input, endian, stringTable);
+                                instance.membersEnum.Add(instance.Members[i].EnumId, i);
+                                Console.WriteLine("Enum: "+instance.Name+"::"+instance.Members[i].Name+" = "+ instance.Members[i].EnumId);
+                            }
+                            break;
+                        }
+
                     default:
                     {
                         throw new NotSupportedException();
@@ -250,10 +298,13 @@ namespace Gibbed.MadMax.FileFormats
 
         public struct MemberDefinition
         {
+            public bool IsEnum;
+            public uint EnumId;
             public string Name;
             public uint TypeHash;
             public uint Size;
-            public long Offset;
+            public uint Offset;
+            public uint Unknown10;
             public uint Unknown14;
             public uint Unknown18;
 
@@ -264,9 +315,23 @@ namespace Gibbed.MadMax.FileFormats
                 instance.Name = stringTable.Get(nameIndex);
                 instance.TypeHash = input.ReadValueU32(endian);
                 instance.Size = input.ReadValueU32(endian);
-                instance.Offset = input.ReadValueS64(endian);
+                instance.Offset = input.ReadValueU32(endian);
+                instance.Unknown10 = input.ReadValueU32(endian);
                 instance.Unknown14 = input.ReadValueU32(endian);
                 instance.Unknown18 = input.ReadValueU32(endian);
+
+                Console.WriteLine("{4:X} MemberDefinition {0} {1:X} UNK {2:X} {3:X}", instance.Name, instance.Offset, instance.Unknown14, instance.Unknown18, input.Position);
+
+                return instance;
+            }
+
+            internal static MemberDefinition ReadEnum(Stream input, Endian endian, StringTable stringTable)
+            {
+                var instance = new MemberDefinition();
+                var nameIndex = input.ReadValueS64(endian);
+                instance.Name = stringTable.Get(nameIndex);
+                instance.IsEnum = true;
+                instance.EnumId = input.ReadValueU32(endian);
                 return instance;
             }
 

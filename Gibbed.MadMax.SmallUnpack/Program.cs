@@ -54,7 +54,6 @@ namespace Gibbed.MadMax.SmallUnpack
             };
 
             List<string> extra;
-
             try
             {
                 extra = options.Parse(args);
@@ -66,6 +65,8 @@ namespace Gibbed.MadMax.SmallUnpack
                 Console.WriteLine("Try `{0} --help' for more information.", GetExecutableName());
                 return;
             }
+
+            //extra.Add("C:\\a01_fd1050_spawn.nl");
 
             if (extra.Count < 1 || extra.Count > 2 || showHelp == true)
             {

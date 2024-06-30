@@ -23,6 +23,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Gibbed.IO;
 
 namespace Gibbed.MadMax.PropertyFormats
@@ -33,16 +34,24 @@ namespace Gibbed.MadMax.PropertyFormats
 
         private Endian _Endian;
         private readonly List<Node> _Nodes;
+        private Node _Root;
 
         public PropertyContainerFile()
         {
             this._Nodes = new List<Node>();
+            _Root = null;
         }
 
         public Endian Endian
         {
             get { return this._Endian; }
             set { this._Endian = value; }
+        }
+
+        public Node Root
+        {
+            get { return this._Root; }
+            set { this._Root = value; }
         }
 
         public List<Node> Nodes
@@ -56,10 +65,7 @@ namespace Gibbed.MadMax.PropertyFormats
             return magic == Signature || magic.Swap() == Signature;
         }
 
-        public void Serialize(Stream output)
-        {
-            throw new NotImplementedException();
-        }
+        
 
         // ReSharper disable InconsistentNaming
         internal enum VariantType : byte
@@ -93,6 +99,7 @@ namespace Gibbed.MadMax.PropertyFormats
         {
             VariantType Type { get; }
             bool IsSimple { get; }
+            uint Alignment { get; }
 
             void Serialize(Stream output, Endian endian);
             void Deserialize(Stream input, Endian endian);
@@ -100,6 +107,8 @@ namespace Gibbed.MadMax.PropertyFormats
 
         private struct RawNode
         {
+            public const uint Size = 4 + 4 + 2 + 2;
+
             public readonly uint NameHash;
             public readonly uint DataOffset;
             public readonly ushort PropertyCount;
@@ -121,10 +130,25 @@ namespace Gibbed.MadMax.PropertyFormats
                 var instanceCount = input.ReadValueU16(endian);
                 return new RawNode(nameHash, dataOffset, propertyCount, instanceCount);
             }
+
+            public void Write(Stream output, Endian endian)
+            {
+                Write(output, this, endian);
+            }
+
+            public static void Write(Stream output, RawNode instance, Endian endian)
+            {
+                output.WriteValueU32(instance.NameHash, endian);
+                output.WriteValueU32(instance.DataOffset, endian);
+                output.WriteValueU16(instance.PropertyCount, endian);
+                output.WriteValueU16(instance.InstanceCount, endian);
+            }
         }
 
         private struct RawProperty
         {
+            public const uint Size = 4 + 4 + 1;
+            private static byte[] _DummyData;
             public readonly uint NameHash;
             public readonly byte[] Data;
             public readonly VariantType Type;
@@ -144,9 +168,162 @@ namespace Gibbed.MadMax.PropertyFormats
                 return new RawProperty(nameHash, data, type);
             }
 
+            public void Write(Stream output, Endian endian)
+            {
+                Write(output, this, endian);
+            }
+
+            public static void Write(Stream output, RawProperty instance, Endian endian)
+            {
+                output.WriteValueU32(instance.NameHash, endian);
+                output.WriteBytes(instance.Data ?? (_DummyData ?? (_DummyData = new byte[4]))); // lol
+                output.WriteValueU8((byte)instance.Type);
+            }
+
             public override string ToString()
             {
                 return string.Format("{0:X} {1}", this.NameHash, this.Type);
+            }
+        }
+
+        public void Serialize(Stream output)
+        {
+            //throw new NotImplementedException();
+            var endian = this._Endian;
+
+            if (this._Root == null)
+            {
+                output.WriteValueU32(Signature, endian);
+                output.WriteValueU32(1, endian); // version
+                new RawNode(0, 8 + RawNode.Size, 0, 0).Write(output, endian);
+                return;
+            }
+
+            var stringOffsets = new Dictionary<string, uint>();
+
+            using (var data = new MemoryStream())
+            {
+                data.WriteValueU32(Signature, endian);
+                data.WriteValueU32(1, endian); // version
+
+                var rawNodes = new List<Tuple<long, RawNode>>();
+
+                var queue = new Queue<Tuple<long, Node>>();
+                queue.Enqueue(new Tuple<long, Node>(data.Position, this._Root));
+
+                data.Position += RawNode.Size; // root node size
+                while (queue.Count > 0)
+                {
+                    var tuple = queue.Dequeue();
+                    var rawPosition = tuple.Item1;
+                    var node = tuple.Item2;
+
+                    var propertyPosition = data.Position;
+                    var childPosition = (propertyPosition + node.Properties.Count * RawProperty.Size).Align(4);
+                    var propertyDataPosition = childPosition + (node.Children.Count * RawNode.Size);
+
+                    var rawNode = new RawNode(node.NameHash,
+                                              (uint)propertyPosition,
+                                              (ushort)node.Properties.Count,
+                                              (ushort)node.Children.Count);
+                    rawNodes.Add(new Tuple<long, RawNode>(rawPosition, rawNode));
+
+                    data.Position = propertyDataPosition;
+                    var rawProperties = new List<RawProperty>();
+                    foreach (var kv in node.Properties.OrderBy(kv => kv.Key))
+                    {
+                        var rawVariant = (IRawVariant)kv.Value;
+
+                        RawProperty rawProperty;
+                        if (rawVariant.IsSimple == false)
+                        {
+                            var bytes = new byte[4];
+                            using (var temp = new MemoryStream(bytes))
+                            {
+                                rawVariant.Serialize(temp, endian);
+                            }
+
+                            rawProperty = new RawProperty(kv.Key, bytes, rawVariant.Type);
+                        }
+                        else if (rawVariant is Variants.StringVariant)
+                        {
+                            var stringVariant = (Variants.StringVariant)rawVariant;
+
+                            uint dataOffset;
+                            if (stringOffsets.ContainsKey(stringVariant.Value) == false)
+                            {
+                                if (rawVariant.Alignment > 0)
+                                {
+                                    data.Position = data.Position.Align(rawVariant.Alignment);
+                                }
+
+                                dataOffset = (uint)data.Position;
+                                rawVariant.Serialize(data, endian);
+
+                                stringOffsets.Add(stringVariant.Value, dataOffset);
+                            }
+                            else
+                            {
+                                dataOffset = stringOffsets[stringVariant.Value];
+                            }
+
+                            var bytes = new byte[4];
+                            using (var temp = new MemoryStream(bytes))
+                            {
+                                temp.WriteValueU32(dataOffset, endian);
+                            }
+
+                            rawProperty = new RawProperty(kv.Key, bytes, rawVariant.Type);
+                        }
+                        else
+                        {
+                            if (rawVariant.Alignment > 0)
+                            {
+                                data.Position = data.Position.Align(rawVariant.Alignment);
+                            }
+
+                            var dataOffset = (uint)data.Position;
+                            rawVariant.Serialize(data, endian);
+
+                            var bytes = new byte[4];
+                            using (var temp = new MemoryStream(bytes))
+                            {
+                                temp.WriteValueU32(dataOffset, endian);
+                            }
+
+                            rawProperty = new RawProperty(kv.Key, bytes, rawVariant.Type);
+                        }
+
+                        rawProperties.Add(rawProperty);
+                    }
+
+                    var childDataPosition = data.Position.Align(4);
+
+                    data.Position = propertyPosition;
+                    foreach (var rawProperty in rawProperties)
+                    {
+                        rawProperty.Write(data, endian);
+                    }
+
+                    data.Position = childDataPosition;
+                    foreach (var child in node.Children.Values.OrderBy(c => c.NameHash))
+                    {
+                        queue.Enqueue(new Tuple<long, Node>(childPosition, child));
+                        childPosition += RawNode.Size;
+                    }
+                }
+
+                foreach (var tuple in rawNodes)
+                {
+                    var rawPosition = tuple.Item1;
+                    var rawNode = tuple.Item2;
+                    data.Position = rawPosition;
+                    rawNode.Write(data, endian);
+                }
+
+                data.Flush();
+                data.Position = 0;
+                output.WriteFromStream(data, data.Length);
             }
         }
 

@@ -234,7 +234,7 @@ namespace Gibbed.MadMax.Unpack
                         else
                         {
                             input.Seek(entry.Offset, SeekOrigin.Begin);
-                            using (var temp = input.ReadToMemoryStream(entry.CompressedSize))
+                            using (var temp = input.ReadToMemoryStream((int)entry.CompressedSize))
                             {
                                 var chunks = tab.EntryChunks[nameHash];
                                 for (int i = 0; i < chunks.Count; i++)

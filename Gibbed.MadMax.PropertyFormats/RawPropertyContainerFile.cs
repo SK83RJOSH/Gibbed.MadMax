@@ -34,6 +34,7 @@ namespace Gibbed.MadMax.PropertyFormats
     {
         private Endian _Endian;
         private readonly List<Node> _Nodes;
+        private Node _Root;
 
         public RawPropertyContainerFile()
         {
@@ -49,6 +50,12 @@ namespace Gibbed.MadMax.PropertyFormats
         public List<Node> Nodes
         {
             get { return this._Nodes; }
+        }
+
+        public Node Root
+        {
+            get { return this._Root; }
+            set { this._Root = value; }
         }
 
         // ReSharper disable InconsistentNaming
@@ -293,7 +300,7 @@ namespace Gibbed.MadMax.PropertyFormats
                                 throw new FormatException();
                             }
 
-                            var name = input.ReadString(length, true, Encoding.ASCII);
+                            var name = input.ReadString((int)length, true, Encoding.ASCII);
                             var id = name.HashJenkins();
 
                             if (node.KnownNames.ContainsKey(id) == false)
@@ -321,7 +328,7 @@ namespace Gibbed.MadMax.PropertyFormats
                                 throw new FormatException();
                             }
 
-                            var name = input.ReadString(length, true, Encoding.ASCII);
+                            var name = input.ReadString((int)length, true, Encoding.ASCII);
                             var id = name.HashJenkins();
 
                             if (node.KnownNames.ContainsKey(id) == false)
