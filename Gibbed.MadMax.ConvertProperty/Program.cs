@@ -32,6 +32,7 @@ using Gibbed.IO;
 using Gibbed.MadMax.FileFormats;
 using Gibbed.MadMax.PropertyFormats;
 using NDesk.Options;
+using static Gibbed.MadMax.ConvertProperty.Program;
 
 namespace Gibbed.MadMax.ConvertProperty
 {
@@ -101,7 +102,7 @@ namespace Gibbed.MadMax.ConvertProperty
                 return;
             }
 
-            //extras.Add("C:\\Program Files (x86)\\Steam\\steamapps\\common\\Mad Max\\archives_win64\\unpacked\\locations\\a01\\key_locations\\enc1010\\a01_enc1010_unpack\\locations\\a01\\key_locations\\enc1010\\a01_enc1010.xml");
+            //extras.Add("C:\\Program Files (x86)\\Steam\\steamapps\\common\\Mad Max\\archives_win64_unpacked\\global\\convoys_unpack\\global\\convoys.blo");
 
             if (mode == Mode.Unknown && extras.Count >= 1)
             {
@@ -275,7 +276,18 @@ namespace Gibbed.MadMax.ConvertProperty
                             {
                                 Endian = endian.Value,
                             };
-                            break;
+
+                                var nodes = root.Select("object");
+                                while (nodes.MoveNext() == true)
+                                //    var node = root.SelectSingleNode("object");
+                                //if (node != null)
+                                {
+                                    propertyFile.Nodes.Add(ParseObject(nodes.Current, true));
+                                    //node = node.SelectSingleNode("object");
+                                    //propertyFile.Root = ParseObject(node);
+                                }
+
+                                break;
                         }
 
                         case FileFormat.RTPC:
@@ -284,6 +296,13 @@ namespace Gibbed.MadMax.ConvertProperty
                             {
                                 Endian = endian.Value,
                             };
+
+                            var node = root.SelectSingleNode("object");
+                            if (node != null)
+                            {
+                                node = node.SelectSingleNode("object");
+                                propertyFile.Root = ParseObject(node, false);
+                            }
                             break;
                         }
 
@@ -292,13 +311,7 @@ namespace Gibbed.MadMax.ConvertProperty
                             throw new NotSupportedException();
                         }
                     }
-
-                    var node = root.SelectSingleNode("object");
-                    if (node != null)
-                    {
-                        node = node.SelectSingleNode("object");
-                        propertyFile.Root = ParseObject(node);
-                    }
+                   
                 }
 
                 string outputPath = extras.Count > 1
@@ -459,11 +472,13 @@ namespace Gibbed.MadMax.ConvertProperty
             return name.HashJenkins();
         }
 
-        private static Node ParseObject(XPathNavigator nav)
+        private static Node ParseObject(XPathNavigator nav, bool skipHash)
         {
             var node = new Node();
-            string name;
-            node.NameHash = GetIdOrName(nav, out name);
+            string name = "";
+            if (!skipHash)
+                node.NameHash = GetIdOrName(nav, out name);
+
             if (nav.MoveToAttribute("tag", "") == true)
             {
                 node.Tag = nav.Value;
@@ -518,8 +533,7 @@ namespace Gibbed.MadMax.ConvertProperty
                 {
                     throw new InvalidOperationException();
                 }
-
-                var obj = ParseObject(child);
+                var obj = ParseObject(child, false);
 
                 if (node.Children.ContainsKey(obj.NameHash) == true)
                 {

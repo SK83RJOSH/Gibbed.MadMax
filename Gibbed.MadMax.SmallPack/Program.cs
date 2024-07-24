@@ -29,6 +29,42 @@ using NDesk.Options;
 
 namespace Gibbed.MadMax.SmallUnpack
 {
+    public static class PathExtensions
+    {
+        public static string GetRelativePath(string baseDirectory, string targetPath)
+        {
+            if (string.IsNullOrEmpty(baseDirectory))
+                throw new ArgumentException("Base directory cannot be null or empty.", nameof(baseDirectory));
+
+            if (string.IsNullOrEmpty(targetPath))
+                throw new ArgumentException("Target path cannot be null or empty.", nameof(targetPath));
+
+            Uri baseUri = new Uri(AppendDirectorySeparatorChar(baseDirectory));
+            Uri targetUri = new Uri(targetPath);
+
+            if (baseUri.Scheme != targetUri.Scheme)
+                return targetPath;  // path can't be made relative if not in the same volume
+
+            Uri relativeUri = baseUri.MakeRelativeUri(targetUri);
+            string relativePath = Uri.UnescapeDataString(relativeUri.ToString());
+
+            if (targetUri.Scheme.Equals("file", StringComparison.InvariantCultureIgnoreCase))
+                relativePath = relativePath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+
+            return relativePath;
+        }
+
+        private static string AppendDirectorySeparatorChar(string path)
+        {
+            if (!Path.HasExtension(path) && !path.EndsWith(Path.DirectorySeparatorChar.ToString()))
+            {
+                return path + Path.DirectorySeparatorChar;
+            }
+
+            return path;
+        }
+    }
+
     internal class Program
     {
         private static string GetExecutableName()
@@ -97,7 +133,7 @@ namespace Gibbed.MadMax.SmallUnpack
             {
                 pendingEntries.Add(new SmallArchiveFile.PendingEntry()
                 {
-                    Name = Path.GetRelativePath(inputPath, file).Replace("\\", "/"),
+                    Name = PathExtensions.GetRelativePath(inputPath, file).Replace("\\", "/"),
                     Path = file,
                 });
             }

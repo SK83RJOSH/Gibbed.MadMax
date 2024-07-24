@@ -253,6 +253,7 @@ namespace Gibbed.MadMax.PropertyFormats
 
         public void Serialize(Stream output)
         {
+            //SerializeNode(output, Root);
             foreach (var node in this.Nodes)
             {
                 this.SerializeNode(output, node);
