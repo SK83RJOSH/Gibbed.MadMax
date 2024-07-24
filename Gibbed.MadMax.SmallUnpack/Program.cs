@@ -81,7 +81,7 @@ namespace Gibbed.MadMax.SmallUnpack
             string inputPath = extra[0];
             string baseOutputPath = extra.Count > 1
                                         ? extra[1]
-                                        : Path.ChangeExtension(inputPath, null) + "_unpack";
+                                        : Path.ChangeExtension(inputPath, null);
 
             using (var input = File.OpenRead(inputPath))
             {
