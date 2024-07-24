@@ -71,6 +71,17 @@ namespace Gibbed.MadMax.SmallUnpack
                 return;
             }
 
+            if (extra.Count < 1 || extra.Count > 2 || showHelp == true)
+            {
+                Console.WriteLine("Usage: {0} [OPTIONS]+ input_sarc [output_directory]", GetExecutableName());
+                Console.WriteLine("pack specified small archive.");
+                Console.WriteLine();
+                Console.WriteLine("Options:");
+                options.WriteOptionDescriptions(Console.Out);
+                return;
+            }
+
+
             //extra.Add("C:\\Program Files (x86)\\Steam\\steamapps\\common\\Mad Max\\dropzone\\locations\\a01\\key_locations\\enc1010\\a01_enc1010");
 
             string inputPath = extra[0];
