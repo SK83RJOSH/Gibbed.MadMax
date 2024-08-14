@@ -86,6 +86,11 @@ namespace Gibbed.MadMax.PropertyFormats
                     {
                         return new Variants.ObjectIdVariant();
                     }
+
+                case "vec_byte":
+                    {
+                        return new Variants.BytesVariant();
+                    }
             }
 
             throw new ArgumentException("unknown variant type", "type");

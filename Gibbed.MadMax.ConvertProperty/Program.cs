@@ -102,7 +102,7 @@ namespace Gibbed.MadMax.ConvertProperty
                 return;
             }
 
-            //extras.Add("C:\\Program Files (x86)\\Steam\\steamapps\\common\\Mad Max\\archives_win64_unpacked\\global\\convoys_unpack\\global\\convoys.blo");
+            //extras.Add("C:\\Program Files (x86)\\Steam\\steamapps\\common\\Mad Max\\archives_win64\\unpacked\\global\\global\\global\\global.xml");
 
             if (mode == Mode.Unknown && extras.Count >= 1)
             {
