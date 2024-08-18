@@ -72,7 +72,8 @@ namespace Gibbed.MadMax.PropertyFormats
             [Obsolete]
             DoNotUse1 = 7, // Matrix3x3
 
-            Matrix4x3 = 8,
+            Matrix4x3_NotUsed = 8,
+            Matrix4x4 = 8,
             Integers = 9,
             Floats = 10,
             Bytes = 11,

@@ -64,7 +64,8 @@ namespace Gibbed.MadMax.PropertyFormats
 
                 case "mat":
                 {
-                    return new Variants.Matrix4x3Variant();
+                    return new Variants.Matrix4x4Variant();
+                        //return new Variants.Matrix4x3Variant();
                 }
 
                 case "vec_int":
@@ -130,9 +131,9 @@ namespace Gibbed.MadMax.PropertyFormats
                     return new Variants.Vector4Variant();
                 }
 
-                case RawPropertyContainerFile.VariantType.Matrix4x3:
+                case RawPropertyContainerFile.VariantType.Matrix4x4:
                 {
-                    return new Variants.Matrix4x3Variant();
+                    return new Variants.Matrix4x4Variant();
                 }
 
                 case RawPropertyContainerFile.VariantType.Integers:
@@ -188,9 +189,9 @@ namespace Gibbed.MadMax.PropertyFormats
                     return new Variants.Vector4Variant();
                 }
 
-                case PropertyContainerFile.VariantType.Matrix4x3:
+                case PropertyContainerFile.VariantType.Matrix4x4:
                 {
-                    return new Variants.Matrix4x3Variant();
+                    return new Variants.Matrix4x4Variant();
                 }
 
                 case PropertyContainerFile.VariantType.Integers:

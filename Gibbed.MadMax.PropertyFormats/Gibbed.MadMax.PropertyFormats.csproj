@@ -57,6 +57,7 @@
     <Compile Include="Variants\IntegersVariant.cs" />
     <Compile Include="Variants\IntegerVariant.cs" />
     <Compile Include="Variants\Matrix4x3Variant.cs" />
+    <Compile Include="Variants\Matrix4x4Variant.cs" />
     <Compile Include="Variants\ObjectIdVariant.cs" />
     <Compile Include="Variants\StringVariant.cs" />
     <Compile Include="VariantFactory.cs" />

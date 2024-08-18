@@ -88,7 +88,7 @@ namespace Gibbed.MadMax.PropertyFormats.Variants
         #region RawPropertyContainerFile
         RawPropertyContainerFile.VariantType RawPropertyContainerFile.IRawVariant.Type
         {
-            get { return RawPropertyContainerFile.VariantType.Matrix4x3; }
+            get { return RawPropertyContainerFile.VariantType.Matrix4x3_NotUsed; }
         }
 
         void RawPropertyContainerFile.IRawVariant.Serialize(Stream output, Endian endian)
@@ -105,7 +105,7 @@ namespace Gibbed.MadMax.PropertyFormats.Variants
         #region PropertyContainerFile
         PropertyContainerFile.VariantType PropertyContainerFile.IRawVariant.Type
         {
-            get { return PropertyContainerFile.VariantType.Matrix4x3; }
+            get { return PropertyContainerFile.VariantType.Matrix4x3_NotUsed; }
         }
 
         bool PropertyContainerFile.IRawVariant.IsSimple
@@ -115,7 +115,7 @@ namespace Gibbed.MadMax.PropertyFormats.Variants
 
         uint PropertyContainerFile.IRawVariant.Alignment
         {
-            get { return 4; }
+            get { return 16; }
         }
 
         void PropertyContainerFile.IRawVariant.Serialize(Stream output, Endian endian)

@@ -102,7 +102,7 @@ namespace Gibbed.MadMax.ConvertProperty
                 return;
             }
 
-            //extras.Add("C:\\Program Files (x86)\\Steam\\steamapps\\common\\Mad Max\\archives_win64\\unpacked\\global\\global\\global\\global.xml");
+            //extras.Add("C:\\Program Files (x86)\\Steam\\steamapps\\common\\Mad Max\\dropzone\\locations\\a00\\character\\madmax\\upgrade\\max_upgrade_shotgun_lvl5.xml");
 
             if (mode == Mode.Unknown && extras.Count >= 1)
             {

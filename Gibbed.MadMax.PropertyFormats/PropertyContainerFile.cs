@@ -81,7 +81,8 @@ namespace Gibbed.MadMax.PropertyFormats
             [Obsolete]
             DoNotUse1 = 7, // Matrix3x3
 
-            Matrix4x3 = 8,
+            Matrix4x3_NotUsed = 8, // SUS
+            Matrix4x4 = 8,
             Integers = 9,
             Floats = 10,
             Bytes = 11,
@@ -176,7 +177,7 @@ namespace Gibbed.MadMax.PropertyFormats
             public static void Write(Stream output, RawProperty instance, Endian endian)
             {
                 output.WriteValueU32(instance.NameHash, endian);
-                output.WriteBytes(instance.Data ?? (_DummyData ?? (_DummyData = new byte[4]))); // lol
+                output.WriteBytes(instance.Data); // lol //  ?? (_DummyData ?? (_DummyData = new byte[4]))
                 output.WriteValueU8((byte)instance.Type);
             }
 
@@ -186,7 +187,7 @@ namespace Gibbed.MadMax.PropertyFormats
             }
         }
 
-        public void Serialize(Stream output)
+        public void DSerialize(Stream output)
         {
             //throw new NotImplementedException();
             var endian = this._Endian;
@@ -324,6 +325,151 @@ namespace Gibbed.MadMax.PropertyFormats
                 data.Flush();
                 data.Position = 0;
                 output.WriteFromStream(data, data.Length);
+            }
+        }
+
+        public void Serialize(Stream output)
+        {
+            var endian = this._Endian;
+
+            if (this._Root == null)
+            {
+                output.WriteValueU32(Signature, endian);
+                output.WriteValueU32(1, endian); // version
+                new RawNode(0, 8 + RawNode.Size, 0, 0).Write(output, endian);
+                return;
+            }
+
+            var stringOffsets = new Dictionary<string, uint>();
+
+            using (var data = new MemoryStream())
+            {
+                data.WriteValueU32(Signature, endian);
+                data.WriteValueU32(1, endian); // version
+
+                var rawNodes = new List<Tuple<long, RawNode>>();
+
+                data.Position += RawNode.Size; // root node size
+                rawNodes.Add(new Tuple<long, RawNode>(data.Position - RawNode.Size, new RawNode(this._Root.NameHash,
+                                          (uint)data.Position,
+                                          (ushort)this._Root.Properties.Count,
+                                          (ushort)this._Root.Children.Count)));
+
+                // Node are stored as read in the XML file
+                WriteNode(data, this._Root, stringOffsets, rawNodes);
+
+                foreach (var tuple in rawNodes)
+                {
+                    var rawPosition = tuple.Item1;
+                    var rawNode = tuple.Item2;
+                    data.Position = rawPosition;
+                    rawNode.Write(data, endian);
+                }
+
+                data.Flush();
+                data.Position = 0;
+                output.WriteFromStream(data, data.Length);
+            }
+        }
+
+        private void WriteNode(Stream data, Node node, Dictionary<string, uint> stringOffsets, List<Tuple<long, RawNode>> rawNodes)
+        {
+            var endian = this._Endian;
+
+            var propertyPosition = data.Position;
+            var childPosition = (propertyPosition + node.Properties.Count * RawProperty.Size).Align(4);
+            var propertyDataPosition = childPosition + (node.Children.Count * RawNode.Size);
+
+            data.Position = propertyDataPosition;
+            var rawProperties = new List<RawProperty>();
+            foreach (var kv in node.Properties.OrderBy(kv => kv.Key))
+            {
+                var rawVariant = (IRawVariant)kv.Value;
+
+                RawProperty rawProperty;
+                if (rawVariant.IsSimple == false)
+                {
+                    var bytes = new byte[4];
+                    using (var temp = new MemoryStream(bytes))
+                    {
+                        rawVariant.Serialize(temp, endian);
+                    }
+
+                    rawProperty = new RawProperty(kv.Key, bytes, rawVariant.Type);
+                }
+                else if (rawVariant is Variants.StringVariant)
+                {
+                    var stringVariant = (Variants.StringVariant)rawVariant;
+
+                    uint dataOffset;
+                    if (stringOffsets.ContainsKey(stringVariant.Value) == false)
+                    {
+                        if (rawVariant.Alignment > 0)
+                        {
+                            data.Position = data.Position.Align(rawVariant.Alignment);
+                        }
+
+                        dataOffset = (uint)data.Position;
+                        rawVariant.Serialize(data, endian);
+
+                        stringOffsets.Add(stringVariant.Value, dataOffset);
+                    }
+                    else
+                    {
+                        dataOffset = stringOffsets[stringVariant.Value];
+                    }
+
+                    var bytes = new byte[4];
+                    using (var temp = new MemoryStream(bytes))
+                    {
+                        temp.WriteValueU32(dataOffset, endian);
+                    }
+
+                    rawProperty = new RawProperty(kv.Key, bytes, rawVariant.Type);
+                }
+                else
+                {
+                    if (rawVariant.Alignment > 0)
+                    {
+                        data.Position = data.Position.Align(rawVariant.Alignment);
+                    }
+
+                    var dataOffset = (uint)data.Position;
+                    rawVariant.Serialize(data, endian);
+
+                    var bytes = new byte[4];
+                    using (var temp = new MemoryStream(bytes))
+                    {
+                        temp.WriteValueU32(dataOffset, endian);
+                    }
+
+                    rawProperty = new RawProperty(kv.Key, bytes, rawVariant.Type);
+                }
+
+                rawProperties.Add(rawProperty);
+            }
+
+            var childDataPosition = data.Position.Align(4);
+
+            data.Position = propertyPosition;
+            foreach (var rawProperty in rawProperties.OrderBy(kv => kv.NameHash))
+            {
+                rawProperty.Write(data, endian);
+            }
+
+            data.Position = childDataPosition;
+            foreach (var child in node.Children.OrderBy(c => c.Value.NameHash))
+            {
+
+                var rawNode = new RawNode(child.Value.NameHash,
+                          (uint)data.Position,
+                          (ushort)child.Value.Properties.Count,
+                          (ushort)child.Value.Children.Count);
+                rawNodes.Add(new Tuple<long, RawNode>(childPosition, rawNode));
+
+                childPosition += RawNode.Size;
+
+                WriteNode(data, child.Value, stringOffsets, rawNodes);
             }
         }
 

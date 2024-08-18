@@ -97,7 +97,7 @@ namespace Gibbed.MadMax.PropertyFormats.Variants
 
         uint PropertyContainerFile.IRawVariant.Alignment
         {
-            get { return 4; }
+            get { return 16; }
         }
 
         void PropertyContainerFile.IRawVariant.Serialize(Stream output, Endian endian)
