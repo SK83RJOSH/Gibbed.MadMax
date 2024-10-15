@@ -103,6 +103,7 @@ namespace Gibbed.MadMax.ConvertProperty
             }
 
             //extras.Add("C:\\Program Files (x86)\\Steam\\steamapps\\common\\Mad Max\\dropzone\\locations\\a00\\character\\madmax\\upgrade\\max_upgrade_shotgun_lvl5.xml");
+            //extras.Add("C:\\Program Files (x86)\\Steam\\steamapps\\common\\Mad Max\\archives_win64_unpacked\\locations\\world.bin");
 
             if (mode == Mode.Unknown && extras.Count >= 1)
             {
@@ -332,7 +333,7 @@ namespace Gibbed.MadMax.ConvertProperty
         private static void WriteProperty(XmlWriter writer, IVariant variant)
         {
             writer.WriteAttributeString("type", variant.Tag);
-            writer.WriteValue(variant.Compose());
+            writer.WriteValue(variant.Compose(_Names));
         }
 
         private static void WriteObject(XmlWriter writer, Node node)

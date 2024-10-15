@@ -46,7 +46,7 @@ namespace Gibbed.MadMax.PropertyFormats.Variants
             this._Value = int.Parse(text, CultureInfo.InvariantCulture);
         }
 
-        public string Compose()
+        public string Compose(ProjectData.HashList<uint> hashNames)
         {
             return this._Value.ToString(CultureInfo.InvariantCulture);
         }

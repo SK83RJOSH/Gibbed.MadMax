@@ -52,7 +52,7 @@ namespace Gibbed.MadMax.PropertyFormats.Variants
             this._Value = bytes;
         }
 
-        public string Compose()
+        public string Compose(ProjectData.HashList<uint> hashNames)
         {
             return string.Join(",", this._Value.Select(v => v.ToString(CultureInfo.InvariantCulture)));
         }

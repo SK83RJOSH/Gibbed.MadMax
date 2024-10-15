@@ -46,7 +46,7 @@
     <Compile Include="AdfFile.cs" />
     <Compile Include="ArchiveTableFile.cs" />
     <Compile Include="FileDetection.cs" />
-    <Compile Include="Matrix4x3.cs" />
+    <Compile Include="Matrix3x4.cs" />
     <Compile Include="Matrix4x4.cs" />
     <Compile Include="SmallArchiveFile.cs" />
     <Compile Include="Vector2.cs" />

@@ -47,7 +47,7 @@ namespace Gibbed.MadMax.PropertyFormats.Variants
             this._Value = text;
         }
 
-        public string Compose()
+        public string Compose(ProjectData.HashList<uint> hashNames)
         {
             return this._Value;
         }

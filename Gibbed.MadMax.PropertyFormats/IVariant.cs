@@ -27,6 +27,6 @@ namespace Gibbed.MadMax.PropertyFormats
         string Tag { get; }
 
         void Parse(string text);
-        string Compose();
+        string Compose(ProjectData.HashList<uint> hashNames);
     }
 }

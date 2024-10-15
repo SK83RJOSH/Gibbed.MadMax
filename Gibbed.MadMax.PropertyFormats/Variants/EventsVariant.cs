@@ -25,10 +25,17 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using Gibbed.IO;
+using Gibbed.MadMax.FileFormats;
 
 namespace Gibbed.MadMax.PropertyFormats.Variants
 {
+    //SEventID
+    // unsigned int m_Hash;
+    // unsigned int m_NameSpace;
+    
     public class EventsVariant : IVariant, RawPropertyContainerFile.IRawVariant, PropertyContainerFile.IRawVariant
     {
         private readonly List<KeyValuePair<uint, uint>> _Values;
@@ -48,21 +55,22 @@ namespace Gibbed.MadMax.PropertyFormats.Variants
             get { return "vec_events"; }
         }
 
+        private uint ParseElement(string element)
+        {
+            element = element.Trim();
+
+            if (element.StartsWith("0x") || element.StartsWith("0X"))
+            {
+                return uint.Parse(element.Substring(2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+            }
+            else
+            {
+               return StringHelpers.HashJenkins(element);
+            }
+        }
+
         public void Parse(string text)
         {
-            //var parts = text.Split(',');
-            //if ((parts.Length % 2) != 0)
-            //{
-            //    throw new FormatException("vec_events requires pairs of uints delimited by a comma");
-            //}
-
-            //this._Values.Clear();
-            //for (int i = 0; i < parts.Length; i += 2)
-            //{
-            //    var left = uint.Parse(parts[i + 0], CultureInfo.InvariantCulture);
-            //    var right = uint.Parse(parts[i + 1], CultureInfo.InvariantCulture);
-            //    this._Values.Add(new KeyValuePair<uint, uint>(left, right));
-            //}
             this._Values.Clear();
             if (string.IsNullOrEmpty(text) == false)
             {
@@ -73,24 +81,32 @@ namespace Gibbed.MadMax.PropertyFormats.Variants
                 }
                 for (int i = 0; i < parts.Length; i += 2)
                 {
-                    var left = uint.Parse(parts[i + 0], CultureInfo.InvariantCulture);
-                    var right = uint.Parse(parts[i + 1], CultureInfo.InvariantCulture);
+                    var left = ParseElement(parts[i + 0]);
+                    var right = ParseElement(parts[i + 1]);
                     this._Values.Add(new KeyValuePair<uint, uint>(left, right));
                 }
             }
         }
 
-        public string Compose()
+        public string Compose(ProjectData.HashList<uint> hashNames)
         {
-            return string.Join(", ", this._Values.Select(v => Compose(v)));
+            return string.Join(", ", this._Values.Select(v => Compose(v, hashNames)));
         }
 
-        private static string Compose(KeyValuePair<uint, uint> kv)
+        private static string Compose(KeyValuePair<uint, uint> kv, ProjectData.HashList<uint> hashNames)
         {
+            if(hashNames.Contains(kv.Key))
+            {
+                return string.Format(
+                "{0},0x{1:X}",
+                hashNames[kv.Key],
+                kv.Value);
+            }
+
             return string.Format(
-                "{0},{1}",
-                kv.Key.ToString(CultureInfo.InvariantCulture),
-                kv.Value.ToString(CultureInfo.InvariantCulture));
+                "0x{0:X},0x{1:X}",
+                kv.Key,
+                kv.Value);
         }
 
         #region RawPropertyContainerFile

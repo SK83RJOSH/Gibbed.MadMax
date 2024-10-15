@@ -61,7 +61,7 @@ namespace Gibbed.MadMax.PropertyFormats.Variants
             }
         }
 
-        public string Compose()
+        public string Compose(ProjectData.HashList<uint> hashNames)
         {
             return string.Join(",", this._Values.Select(v => v.ToString(CultureInfo.InvariantCulture)));
         }

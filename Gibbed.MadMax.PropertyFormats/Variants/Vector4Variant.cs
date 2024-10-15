@@ -57,7 +57,7 @@ namespace Gibbed.MadMax.PropertyFormats.Variants
             this._Value = new FileFormats.Vector4(x, y, z, w);
         }
 
-        public string Compose()
+        public string Compose(ProjectData.HashList<uint> hashNames)
         {
             return String.Format(
                 "{0},{1},{2},{3}",
